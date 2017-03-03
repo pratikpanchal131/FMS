@@ -1,0 +1,305 @@
+//
+//  FMS_DeliveredVC.m
+//  FMS
+//
+//  Created by indianic on 06/08/15.
+//  Copyright (c) 2015 indianic. All rights reserved.
+//
+
+#import "FMS_DeliveredVC.h"
+#import "FMS_DeliveredCell.h"
+#import "FMS_DeliveredHistoryVC.h"
+
+@interface FMS_DeliveredVC ()
+
+@end
+
+@implementation FMS_DeliveredVC
+
+#pragma mark View lifecycle
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    
+    
+    [self setNavigationBarWithTitle:@"Delivered Loads" withBack:FALSE];
+    
+    mutDictFilter = [[NSMutableDictionary alloc] init];
+    mutArrData = [[NSMutableArray alloc] init];
+    intPageNumber=1;
+    [[FMS_Utility sharedFMSUtility] addPullToRefreshOnTableView:self.tblVWLoads WithCompleton:^{
+        
+        
+        [self callWebservice];
+        
+    }];
+    
+
+    
+    // Do any additional setup after loading the view.
+}
+-(void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    [self refreshBadge];
+    
+    [self.tblVWLoads setContentOffset:CGPointZero animated:YES];
+    intPageNumber=1;
+    [self callWebservice];
+}
+-(void)viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+    rectTableFrame = self.tblVWLoads.frame;
+}
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+#pragma mark Orientation
+#pragma mark Events
+#pragma mark ViewTouch
+#pragma mark OtherMethods
+-(void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
+{
+    if([segue.identifier isEqualToString:@"pushDeliveredHistory"])
+    {
+        FMS_DeliveredHistoryVC *FMS_DeliveredHistoryVCObj =(FMS_DeliveredHistoryVC*)segue.destinationViewController;
+        FMS_get_loads *FMS_get_loadsObj = mutArrData[intSelectedIndex];
+        FMS_DeliveredHistoryVCObj.strOrderID = FMS_get_loadsObj.orderId;
+        FMS_DeliveredHistoryVCObj.showRightButtons = TRUE;
+    }
+}
+- (IBAction)btnFilterClick:(UIButton *)sender {
+    
+    FMS_Filter *fms_obj = [[FMS_Utility sharedFMSUtility] addViewControllerforFilter:self withStatus:3 withFilledDictionary:mutDictFilter];
+    
+    [fms_obj setDoneFilterBlock:^(NSMutableDictionary *response)
+     {
+         intPageNumber=1;
+         [mutDictFilter removeAllObjects];
+         [mutDictFilter addEntriesFromDictionary:response];
+         [self callWebservice];
+         
+     }];
+    
+}
+
+-(void)callWebservice
+{
+    NSString * aStrFilter;
+    if([mutDictFilter allKeys].count > 0)
+    {
+        NSData * jsonData = [NSJSONSerialization  dataWithJSONObject:mutDictFilter options:0 error:nil];
+        aStrFilter = [[NSString alloc] initWithData:jsonData   encoding:NSUTF8StringEncoding];
+        
+    }
+    else
+        aStrFilter = @"";
+  
+    
+    
+    NSDictionary *aDictObj = [[NSDictionary alloc] initWithObjectsAndKeys:[UserDefaults objectForKey:FMS_LoginUserToken],@"token",[UserDefaults objectForKey:FMS_LoginUserType],@"role",@"delivered",@"type",[NSString stringWithFormat:@"%d",intPageNumber],@"page",  aStrFilter,@"filter", nil];
+    
+    
+    Webservice *WebserviceObj = [[Webservice alloc] init];
+    [WebserviceObj callWebserviceWithURL:[NSString stringWithFormat:@"%@/loads/get_loads",FMS_WSURL] withSilentCall:FALSE  withParams:aDictObj forViewController:self withCompletionBlock:^(NSDictionary *responseData)
+     {
+         
+         
+         if([responseData[@"status"] intValue]==1)
+         {
+             //Total Earning $359
+             if(intPageNumber==1)
+             {
+                 [mutArrData removeAllObjects];
+                 
+                 
+                 if(!responseData[@"data"] || [responseData[@"data"] count]==0)
+                 {
+                     lblNoData.hidden = FALSE;
+                     lblTotalEarning.hidden = TRUE;
+                 }
+                 else
+                 {
+                     lblNoData.hidden = TRUE;
+                 }
+             }
+             
+             
+             
+             if(responseData[@"total_earning"])
+             {
+                 NSString *aStrLength = [NSString stringWithFormat:@"%@",responseData[@"total_earning"]];
+                 
+                 if(aStrLength.length>0 && [[FMS_Utility sharedFMSUtility] checkForViewRatePermission])
+                 {
+                   lblTotalEarning.text = [NSString stringWithFormat:@"Total Earning $ %@",responseData[@"total_earning"]];
+                   lblTotalEarning.hidden = FALSE;
+                 }
+                 else
+                 {
+                      self.tblVWLoads.frame = CGRectMake(rectTableFrame.origin.x,rectTableFrame.origin.y,rectTableFrame.size.width,rectTableFrame.size.height+lblTotalEarning.frame.size.height);
+                 }
+             }
+             else
+             {
+                 self.tblVWLoads.frame = CGRectMake(rectTableFrame.origin.x,rectTableFrame.origin.y,rectTableFrame.size.width,rectTableFrame.size.height+lblTotalEarning.frame.size.height);
+             }
+             
+             if(responseData[@"total_miles"])
+             {
+                 lblTotalMiles.text = [NSString stringWithFormat:@"Total Mile(s) %@",responseData[@"total_miles"]];
+             }
+
+             
+             intMaxPageNumber = [responseData[@"total_page"] intValue];
+             
+             
+             for(NSDictionary*aDictObj in responseData[@"data"])
+             {
+                 FMS_get_loads *aFMS_get_loadsOb = [[FMS_get_loads alloc] initWithDictionary:aDictObj];
+                 
+                 
+                 [mutArrData addObject:aFMS_get_loadsOb];
+                 
+             }
+             
+             
+             if(responseData[@"unread_message"])
+             {
+                 [FMS_Utility sharedFMSUtility].strUnreadCount = responseData[@"unread_message"];
+                 [self refreshBadge];
+             }
+           
+             
+             [self.tblVWLoads reloadData];
+             
+             [[FMS_Utility sharedFMSUtility] updateUserPermission:responseData];
+             
+         }
+         else
+         {
+             [FMS_Utility showAlert:responseData[@"message"]];
+         }
+         
+         
+     }
+                        withFailureBlock:^(NSError *error)
+     {
+         
+     }];
+    
+}
+
+#pragma mark - UITableview Delegates and Datasource
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
+{
+    return [mutArrData count];
+}
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    static NSString *CellIdentifier = @"FMS_DeliveredCell";
+    FMS_DeliveredCell *aCell = (FMS_DeliveredCell*)[tableView dequeueReusableCellWithIdentifier:CellIdentifier];
+    
+    FMS_get_loads *aFMS_get_loadsObj = mutArrData[indexPath.row];
+    
+    aCell.lblLoads.text =aFMS_get_loadsObj.loadCount;
+    aCell.lblDate.text =aFMS_get_loadsObj.date;
+    aCell.lblDestLoc.text =aFMS_get_loadsObj.toLocation;
+    aCell.lblSourceLoc.text =aFMS_get_loadsObj.fromLocation;
+    aCell.lblMiles.text = [NSString stringWithFormat:@"Mile(s) %@", aFMS_get_loadsObj.mile];
+   // aCell.lblEarning.text =aFMS_get_loadsObj.earning;
+    //aCell.lblRate.text =aFMS_get_loadsObj.price;
+   
+    
+    
+    if([[FMS_Utility sharedFMSUtility] checkForViewRatePermission])
+    {
+        [aCell.lblRate setAttributedText:[FMS_Utility appednDollarToText:aFMS_get_loadsObj.price]];
+        
+        if([aFMS_get_loadsObj.adminVerified boolValue])
+        {
+            [aCell.lblEarning setAttributedText:[FMS_Utility appednDollarToText:aFMS_get_loadsObj.earning]];
+        }
+        else
+        {
+            [aCell.lblEarning setAttributedText:[FMS_Utility appednDollarToText:@" - "]];
+        }
+
+    }
+    else
+    {
+        [aCell.lblEarning setAttributedText:[FMS_Utility appednDollarToText:@" - "]];
+        [aCell.lblRate setAttributedText:[FMS_Utility appednDollarToText:@" - "]];
+    }
+    
+    
+    
+//    aCell.lblSourceLoc.text =aFMS_get_loadsObj.fromCity;
+    aCell.lblTicketNo.text = aFMS_get_loadsObj.ticketNo;
+    aCell.lblUnitName.text = aFMS_get_loadsObj.unit;
+    aCell.lblUnit.text = aFMS_get_loadsObj.quantity;
+    
+    if([FMS_Utility isLoginFromDriver])
+    {
+        aCell.imgVWTruck.hidden = TRUE;
+        aCell.lblDriverName.hidden = TRUE;
+    }
+    else
+    {
+        aCell.imgVWTruck.hidden = false;
+        aCell.lblDriverName.hidden = false;
+        aCell.lblDriverName.text = aFMS_get_loadsObj.driverName;
+    }
+    
+    
+    
+    if([aFMS_get_loadsObj.adminVerified boolValue])
+    {
+        aCell.backgroundColor = [UIColor clearColor];
+        //aCell.lblDestLoc.textColor = FMS_GreenColor;
+        //aCell.lblSourceLoc.textColor = FMS_GreenColor;
+    }
+    else
+    {
+       // aCell.lblDestLoc.textColor = [UIColor colorWithRed:200.0/255.0 green:199.0/255.0 blue:85.0/255.0 alpha:1.0];
+        //aCell.lblSourceLoc.textColor = [UIColor colorWithRed:200.0/255.0 green:199.0/255.0 blue:85.0/255.0 alpha:1.0];
+        
+        
+        aCell.backgroundColor = [UIColor colorWithRed:74.0/255.0 green:73.0/255.0 blue:73.0/255.0 alpha:1.0];
+
+        
+        //aCell.backgroundColor = [UIColor colorWithRed:200.0/255.0 green:199.0/255.0 blue:85.0/255.0 alpha:1.0];
+    }
+
+    
+    
+    if(intMaxPageNumber!=intPageNumber && indexPath.row==[mutArrData count]-1)
+    {
+        intPageNumber++;
+        [self callWebservice];
+    }
+
+    
+    
+    [aCell setSelectionStyle:UITableViewCellSelectionStyleNone];
+    return aCell;
+}
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    intSelectedIndex = (int)indexPath.row;
+    [self performSegueWithIdentifier:@"pushDeliveredHistory" sender:self];
+}
+
+/*
+#pragma mark - Navigation
+
+// In a storyboard-based application, you will often want to do a little preparation before navigation
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    // Get the new view controller using [segue destinationViewController].
+    // Pass the selected object to the new view controller.
+}
+*/
+
+@end

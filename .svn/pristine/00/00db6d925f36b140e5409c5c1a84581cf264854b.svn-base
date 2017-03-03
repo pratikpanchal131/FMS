@@ -1,0 +1,218 @@
+//
+//  ViewController.m
+//  FMS
+//
+//  Created by indianic on 05/08/15.
+//  Copyright (c) 2015 indianic. All rights reserved.
+//
+
+#import "FMS_LeftVC.h"
+#import "FMS_LoginVC.h"
+#import "FMS_ShareVC.h"
+
+@interface FMS_LeftVC ()
+
+@end
+
+@implementation FMS_LeftVC
+@synthesize floatHeight;
+
+#pragma mark View lifecycle
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    
+    NSString *aStrPlistPath = [[NSBundle mainBundle] pathForResource:@"FMS_LeftOptions" ofType:@"plist"];
+    NSArray *aArrTemp = [NSArray arrayWithContentsOfFile:aStrPlistPath];
+    
+    if([[UserDefaults objectForKey:FMS_LoginUserType] isEqualToString:FMS_Driver])
+    {
+        arrOptions = aArrTemp[0];
+    }
+    else
+    {
+        arrOptions = aArrTemp[1];
+    }
+
+    // Do any additional setup after loading the view, typically from a nib.
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    [self refreshBadge];
+    btnLogOut.frame  = CGRectMake(0,self.view.frame.size.height-floatHeight,self.view.frame.size.width,floatHeight);
+    
+    NSString  *strImageUrl = [UserDefaults objectForKey:FMS_LoginUserAvtar];
+    [imgProfilePic setImageWithURL:[NSURL URLWithString:strImageUrl] placeholderImage:[UIImage imageNamed:@"img_ProfileDefault"]];
+    
+    NSString *strUserName = [UserDefaults objectForKey:FMS_LoginUserName];
+    [lblUserName setText:strUserName];
+}
+
+#pragma mark Orientation
+#pragma mark Events
+
+#pragma mark ViewTouch
+
+#pragma mark OtherMethods
+
+-(IBAction)btnLogoutClicked:(id)sender
+{
+    NSDictionary *aDictObj = [[NSDictionary alloc] initWithObjectsAndKeys:[UserDefaults objectForKey:FMS_LoginUserType],@"role",[UserDefaults objectForKey:FMS_LoginUserToken],@"token", nil];
+
+    Webservice *WebserviceObj = [[Webservice alloc] init];
+    [WebserviceObj callWebserviceWithURL:[NSString stringWithFormat:@"%@/users/logout",FMS_WSURL] withSilentCall:FALSE withParams:aDictObj forViewController:self  withCompletionBlock:^(NSDictionary *responseData)
+     {
+         if([responseData[@"status"] intValue]==1)
+         {
+
+             [[FMS_Utility sharedFMSUtility] clearBadge];
+             
+             [[FMS_Utility sharedFMSUtility] logOutForNavigationControl];
+         }
+         else
+         {
+             [FMS_Utility showAlert:responseData[@"message"]];
+         }
+     }withFailureBlock:^(NSError *error)
+     {
+         
+     }];
+}
+
+- (IBAction)btnProfileClicked:(UIButton *)sender {
+    
+    UIStoryboard *aStoryBoardObj = [UIStoryboard storyboardWithName:FMS_StoryboardSecondary bundle:nil];
+    id aCenterControllerObj =  [aStoryBoardObj instantiateViewControllerWithIdentifier:@"FMS_NavProfileVC"];
+    [self.mm_drawerController setCenterViewController:aCenterControllerObj];
+    [self.mm_drawerController toggleDrawerSide:MMDrawerSideLeft animated:YES completion:nil];
+    
+}
+
+#pragma mark - UITableview Delegates and Datasource
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
+{
+    return [arrOptions count];
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    static NSString *CellIdentifier = @"FMS_LeftVCCell";
+    UITableViewCell *aCell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
+    aCell.textLabel.text = arrOptions[indexPath.row][@"DisplayName"];
+    [aCell.textLabel setFont:[UIFont fontWithName:@"Roboto-Light" size:isIphone5?15:IS_IPHONE_6?16:17]];
+    aCell.textLabel.textColor = FMS_GreenColor;
+    [aCell setSelectionStyle:UITableViewCellSelectionStyleNone];
+    return aCell;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    NSDictionary *aDictOption = arrOptions[indexPath.row];
+    
+    NSString *aStrStoryBoardName = aDictOption[@"Storyboard"];
+    NSString *aStrStoryBoardID = aDictOption[@"StoryboardId"];
+    
+    UIStoryboard *aStoryBoardObj = [UIStoryboard storyboardWithName:aStrStoryBoardName bundle:nil];
+    centerControllerObj =  [aStoryBoardObj instantiateViewControllerWithIdentifier:aStrStoryBoardID];
+    
+    if (indexPath.row == [arrOptions count]-1)
+    {
+        [[AppDelegate objSharedAppDel].window addSubview:[(FMS_ShareVC*)centerControllerObj view]];
+        __weak __typeof((FMS_ShareVC*)centerControllerObj)weakFMS_share = (FMS_ShareVC*)centerControllerObj;
+        __weak __typeof(self)weakSelf = self;
+        [centerControllerObj view].alpha = 0.0;
+        [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionCurveEaseInOut animations:^{
+            
+            [centerControllerObj view].alpha = 1.0;
+    
+        } completion:nil];
+
+        [(FMS_ShareVC*)centerControllerObj setCompletion:^(int buttonindex) {
+           
+            [UIView animateWithDuration:0.5 delay:0.0 options:UIViewAnimationOptionCurveEaseInOut animations:^{
+                [weakFMS_share view].alpha = 0.0;
+            } completion:^(BOOL finished){
+                
+                [weakFMS_share.view removeFromSuperview];
+                if (buttonindex == 0)
+                {
+                    [weakSelf openMessageComposer];
+                }
+                else if (buttonindex == 1)
+                {
+                    
+                
+                    [[FMS_Utility sharedFMSUtility] MailWithtext:@"<html><body>Hey,<br><br>Download this official app of Murphy Brown <a href=\"https://itunes.apple.com/us/app/mb-loads/id1035623571?ls=1&mt=8\">Click here to download</a></body></html>" subject:@"Download MB Loads App" recipientsTo:nil recipientsCC:nil targetFrom:weakSelf WithCompletionBlock:^(MFMailComposeResult result) {
+                        
+                        [[FMS_Utility sharedFMSUtility] CompletionMail:result target:weakSelf];
+                    }];
+                    
+                }
+            }];
+            
+        }];
+
+    }
+    else
+    {
+        [self.mm_drawerController setCenterViewController:centerControllerObj];
+        [self.mm_drawerController toggleDrawerSide:MMDrawerSideLeft animated:YES completion:nil];
+
+    }
+}
+
+-(void)openMessageComposer
+{
+    if(![MFMessageComposeViewController canSendText])
+    {
+        UIAlertView *warningAlert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"Your device doesn't support SMS!" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
+        [warningAlert show];
+        return;
+    }
+    NSString *message = @"Hey,\n\nDownload this official app of Murphy Brown https://itunes.apple.com/us/app/mb-loads/id1035623571?ls=1&mt=8";
+    
+    MFMessageComposeViewController *messageController = [[MFMessageComposeViewController alloc] init];
+    messageController.messageComposeDelegate = self;
+    [messageController setBody:message];
+    
+    [messageController.navigationBar setTintColor:[UIColor whiteColor]];
+    [messageController.navigationBar
+     setTitleTextAttributes:@{NSForegroundColorAttributeName : [UIColor whiteColor]}];
+    [self presentViewController:messageController animated:YES completion:^{
+        [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleLightContent];
+    }];
+}
+
+- (void)messageComposeViewController:(MFMessageComposeViewController *)controller didFinishWithResult:(MessageComposeResult) result
+{
+    switch (result) {
+        case MessageComposeResultCancelled:
+            break;
+            
+        case MessageComposeResultFailed:
+        {
+            UIAlertView *warningAlert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"Failed to send SMS!" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
+            [warningAlert show];
+            break;
+        }
+            
+        case MessageComposeResultSent:
+            break;
+            
+        default:
+            break;
+    }
+    
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+@end

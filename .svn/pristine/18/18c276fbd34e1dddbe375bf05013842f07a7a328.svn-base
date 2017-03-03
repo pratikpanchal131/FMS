@@ -1,0 +1,43 @@
+//
+//  FMS_RegisterVC.h
+//  FMS
+//
+//  Created by indianic on 12/01/16.
+//  Copyright © 2016 indianic. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface FMS_RegisterVC : UIViewController<UIActionSheetDelegate,UIImagePickerControllerDelegate,UINavigationControllerDelegate>
+{
+    __weak IBOutlet UIImageView *imgViewCover;
+    __weak IBOutlet CustomImageView *imgViewProfile;
+    __weak IBOutlet UIScrollView *objScrollview;
+    __weak IBOutlet UIButton *btnRegister;
+    __weak IBOutlet UIButton *btnEditProfileImage;
+    
+    __weak IBOutlet UITextField *txtFName;
+    __weak IBOutlet UITextField *txtFEmailId;
+    __weak IBOutlet UITextField *txtFMobileNo;
+    __weak IBOutlet UITextField *txtFInsurancePolicyName;
+    __weak IBOutlet UITextField *txtFInsurancePolicyNo;
+    __weak IBOutlet CustomTextField *txtFInsurancePolicyExpDate;
+    
+    __weak IBOutlet UIView *viewName;
+    __weak IBOutlet UIView *viewEmailId;
+    __weak IBOutlet UIView *viewMobileNo;
+    __weak IBOutlet UIView *viewInsurancePolicyName;
+    __weak IBOutlet UIView *viewInsurancePolicyNo;
+    __weak IBOutlet UIView *viewInsurancePolicyExpDate;
+    
+    BOOL isProfilePicChange;
+    FMS_ProfileDetail *objFFMS_ProfileDetail;
+}
+@property(nonatomic,assign)BOOL isRegisterDriver;
+
+- (IBAction)btnEditProfileImage:(UIButton *)sender;
+- (IBAction)btnRegister:(UIButton *)sender;
+
+
+
+@end

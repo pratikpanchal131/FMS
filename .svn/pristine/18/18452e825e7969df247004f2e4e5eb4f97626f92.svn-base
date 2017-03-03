@@ -1,0 +1,159 @@
+//
+//  FMS_RegisterVC.m
+//  FMS
+//
+//  Created by indianic on 12/01/16.
+//  Copyright © 2016 indianic. All rights reserved.
+//
+
+#import "FMS_RegisterVC.h"
+
+@interface FMS_RegisterVC ()
+
+@end
+
+@implementation FMS_RegisterVC
+
+#pragma mark View lifecycle
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    [self setUI];
+    
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+}
+
+#pragma mark Events
+
+- (IBAction)btnEditProfileImage:(UIButton *)sender {
+    
+    [[FMS_Utility sharedFMSUtility]openCamera:self isRoundCrop:YES withCompletionBlock:^(UIImage *img) {
+        
+        if (img != nil)
+        {
+            [imgViewProfile setImage:img];
+            isProfilePicChange = YES;
+        }
+    }];
+}
+
+- (IBAction)btnRegister:(UIButton *)sender {
+    
+    [self registerUser];
+}
+
+
+#pragma mark OtherMethods
+
+-(void)setUI
+{
+    [txtFName setTintColor:FMS_WhiteColor];
+    [txtFEmailId setTintColor:FMS_WhiteColor];
+    [txtFMobileNo setTintColor:FMS_WhiteColor];
+    [txtFInsurancePolicyName setTintColor:FMS_WhiteColor];
+    [txtFInsurancePolicyNo setTintColor:FMS_WhiteColor];
+    [txtFInsurancePolicyExpDate setTintColor:FMS_WhiteColor];
+    
+    [self.navigationController setNavigationBarHidden:FALSE];
+    [self setNavigationBarWithTitle:@"Register" withBack:true];
+    if (self.isRegisterDriver)
+    {
+         [objScrollview setContentSize:CGSizeMake([UIScreen mainScreen].bounds.size.width, btnRegister.frame.size.height+btnRegister.frame.origin.y+20)];
+    }
+    
+    [txtFInsurancePolicyExpDate setTintColor:[UIColor clearColor]];
+    [[FMS_Utility sharedFMSUtility]addPicker:self onTextField:txtFInsurancePolicyExpDate pickerType:@"Date" withKey:@"" withCompletionBlock:^(id picker, int buttonIndex, int firstindex, int secondindex) {
+        
+        [txtFInsurancePolicyExpDate resignFirstResponder];
+        if (buttonIndex == 1) {
+            
+            UIDatePicker *datePicker = (UIDatePicker*)picker;
+            NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+            [formatter setDateFormat:@"MM/dd/yyyy"];
+            txtFInsurancePolicyExpDate.text = [NSString stringWithFormat:@"%@",[formatter stringFromDate:datePicker.date]];
+        }
+    } withPickerArray:nil withPickerSecondArray:nil count:0 withTitle:@""];
+}
+
+-(void)registerUser
+{
+    if ([self checkAllFields])
+    {
+        NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+        [formatter setDateFormat:@"MM/dd/yyyy"];
+        NSDate *date = [formatter dateFromString:txtFInsurancePolicyExpDate.text];
+        [formatter setDateFormat:@"yyyy/MM/dd"];
+        NSString *strDate = [formatter stringFromDate:date];
+        
+        NSMutableDictionary *aMutDictObj = [[NSMutableDictionary alloc] initWithObjectsAndKeys:txtFName.text,@"name",txtFMobileNo.text,@"contact_number",txtFEmailId.text,@"email",txtFInsurancePolicyName.text,@"ins_policyname",txtFInsurancePolicyNo.text,@"ins_policyno",strDate,@"ins_policy_expdate", nil];
+        
+        [aMutDictObj setObject:@"avatar" forKey:@"ParamName1"];
+        [aMutDictObj setObject:imgViewProfile.image forKey:@"Image1"];
+        
+        Webservice *WebserviceObj = [[Webservice alloc] init];
+        
+        [WebserviceObj callWebserviceToUploadImageWithURL:[NSString stringWithFormat:@"%@/users/driver_reg",FMS_WSURL] withSilentCall:NO withParams:aMutDictObj forViewController:self withCompletionBlock:^(NSDictionary *responseData) {
+            
+            if([responseData[@"status"] intValue] == 1 )
+            {
+                [[FMS_Utility sharedFMSUtility]showAlertWithTarget:self WithMessage:responseData[@"message"] withCancelButton:@"OK" WithCompletionBlock:^(int index) {
+                   
+                    [self.navigationController popViewControllerAnimated:YES];
+                   
+                } withOtherButtons:nil];
+                
+            }
+            else
+            {
+                [FMS_Utility showAlert:responseData[@"message"]];
+            }
+            
+            
+        } withFailureBlock:^(NSError *error) {
+            
+        }];
+    }
+    else
+    {
+        //[FMS_Utility showAlert:@"Name can not be blank."];
+    }
+}
+
+-(BOOL)checkAllFields
+{
+    BOOL isSucceed = YES;
+    
+    if ([FMS_Utility isEmptyText:txtFName.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Name can not be blank."];
+    }
+    else if ([FMS_Utility isEmptyText:txtFEmailId.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Email ID can not be blank."];
+    }
+    return isSucceed;
+}
+
+#pragma mark TextFieldDelegate
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField
+{
+    [textField resignFirstResponder];
+    return YES;
+}
+
+
+@end
+

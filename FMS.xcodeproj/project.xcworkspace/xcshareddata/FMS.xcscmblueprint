@@ -1,0 +1,25 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "1ac3ac42-92e4-4fe4-ada3-56e937301013++2250",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+    "1ac3ac42-92e4-4fe4-ada3-56e937301013++2250" : {
+
+    }
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "1ac3ac42-92e4-4fe4-ada3-56e937301013++2250" : 9223372036854775807
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "919C7E14-ED45-493A-9994-56A85B50A844",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "1ac3ac42-92e4-4fe4-ada3-56e937301013++2250" : "FMS\/"
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "FMS",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "FMS.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/10.2.1.98\/projects\/fleetmgtsystem",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Subversion",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "1ac3ac42-92e4-4fe4-ada3-56e937301013++2250"
+    }
+  ]
+}

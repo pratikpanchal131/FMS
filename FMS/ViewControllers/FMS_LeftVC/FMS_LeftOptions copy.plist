@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<array>
+		<dict>
+			<key>DisplayName</key>
+			<string>DashBoard</string>
+			<key>StoryboardId</key>
+			<string>FMS_TabBarVC</string>
+			<key>Storyboard</key>
+			<string>Main</string>
+		</dict>
+		<dict>
+			<key>DisplayName</key>
+			<string>Order Status</string>
+			<key>StoryboardId</key>
+			<string>FMS_NavOrderStatus</string>
+			<key>Storyboard</key>
+			<string>Manish</string>
+		</dict>
+		<dict>
+			<key>DisplayName</key>
+			<string>My Report Card</string>
+			<key>StoryboardId</key>
+			<string>FMS_NavReportCard</string>
+			<key>Storyboard</key>
+			<string>Manish</string>
+		</dict>
+		<dict>
+			<key>DisplayName</key>
+			<string>My Rank</string>
+			<key>StoryboardId</key>
+			<string>FMS_NavRank</string>
+			<key>Storyboard</key>
+			<string>Manish</string>
+		</dict>
+		<dict>
+			<key>DisplayName</key>
+			<string>Leader Board</string>
+			<key>StoryboardId</key>
+			<string>FMS_NavLeaderBoardVC</string>
+			<key>Storyboard</key>
+			<string>Secondary</string>
+		</dict>
+		<dict>
+			<key>DisplayName</key>
+			<string>Alerts</string>
+			<key>StoryboardId</key>
+			<string>FMS_NavAlertsVC</string>
+			<key>Storyboard</key>
+			<string>Secondary</string>
+		</dict>
+		<dict>
+			<key>DisplayName</key>
+			<string>Settings</string>
+			<key>StoryboardId</key>
+			<string>FMS_NavSettingsVC</string>
+			<key>Storyboard</key>
+			<string>Secondary</string>
+		</dict>
+		<dict>
+			<key>DisplayName</key>
+			<string>Share App</string>
+			<key>StoryboardId</key>
+			<string>FMS_ShareVC</string>
+			<key>Storyboard</key>
+			<string>Secondary</string>
+		</dict>
+	</array>
+	<array>
+		<dict>
+			<key>DisplayName</key>
+			<string>DashBoard</string>
+			<key>StoryboardId</key>
+			<string>FMS_TabBarVC</string>
+			<key>Storyboard</key>
+			<string>Main</string>
+		</dict>
+		<dict>
+			<key>DisplayName</key>
+			<string>Driver loads</string>
+			<key>StoryboardId</key>
+			<string>FMS_NavDriversLoad</string>
+			<key>Storyboard</key>
+			<string>Manish</string>
+		</dict>
+		<dict>
+			<key>DisplayName</key>
+			<string>Order Status</string>
+			<key>StoryboardId</key>
+			<string>FMS_NavOrderStatus</string>
+			<key>Storyboard</key>
+			<string>Manish</string>
+		</dict>
+		<dict>
+			<key>DisplayName</key>
+			<string>My Drivers</string>
+			<key>StoryboardId</key>
+			<string>FMS_NavMyDrivers</string>
+			<key>Storyboard</key>
+			<string>Manish</string>
+		</dict>
+		<dict>
+			<key>DisplayName</key>
+			<string>Leader Board</string>
+			<key>StoryboardId</key>
+			<string>FMS_NavLeaderBoardVC</string>
+			<key>Storyboard</key>
+			<string>Secondary</string>
+		</dict>
+		<dict>
+			<key>DisplayName</key>
+			<string>Settings</string>
+			<key>StoryboardId</key>
+			<string>FMS_NavSettingsVC</string>
+			<key>Storyboard</key>
+			<string>Secondary</string>
+		</dict>
+		<dict>
+			<key>DisplayName</key>
+			<string>Share App</string>
+			<key>StoryboardId</key>
+			<string>FMS_ShareVC</string>
+			<key>Storyboard</key>
+			<string>Secondary</string>
+		</dict>
+	</array>
+</array>
+</plist>

@@ -1,0 +1,938 @@
+//
+//  FMS_ProfileVC.m
+//  FMS
+//
+//  Created by indianic on 07/08/15.
+//  Copyright (c) 2015 indianic. All rights reserved.
+//
+
+#import "FMS_ProfileVC.h"
+#import "MultipleSelectionViewController.h"
+#import "SingleSelectionViewController.h"
+
+
+@interface FMS_ProfileVC ()
+{
+    NSMutableArray *mutArrDataTrailers;
+    NSString *indexAlternateTrailerType,*indexPrimaryTrailerType;
+    
+    NSArray *arrAlternateTrailerTypeSelectedIndexes;
+    NSNumber *PrimaryTrailerTypeSelectedIndex;
+    
+    NSString *strAlternateTrailerType,*strPrimaryTrailerType;
+
+}
+@end
+
+@implementation FMS_ProfileVC
+
+#pragma mark View lifecycle
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    [self getAPICALL];
+    [self setUI];
+    [self getMyProfileDetail];
+    
+    mutArrDataTrailers = [[NSMutableArray alloc] init];
+ 
+//    [self setNavButtonDisabled];
+}
+
+
+-(void)getAPICallProfileCheck
+{
+    
+    Webservice *WebserviceObj = [[Webservice alloc] init];
+    NSMutableDictionary  * aDictParams = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[UserDefaults objectForKey:FMS_LoginUserToken],@"token",
+                [UserDefaults objectForKey:FMS_LoginUserType],@"role",nil];
+    
+    
+    [WebserviceObj callWebserviceToUploadImageWithURL:[NSString stringWithFormat:@"%@/users/check_profile",FMS_WSURL] withSilentCall:NO withParams:aDictParams forViewController:self withCompletionBlock:^(NSDictionary *responseData) {
+        
+        if([responseData[@"status"] intValue] == 1 )
+        {
+                NSLog(@" Profile stsus %@",[responseData valueForKey:@"profile_status"]);
+//                [self.navigationController popViewControllerAnimated:YES];
+        }
+        else
+        {
+            [FMS_Utility showAlert:responseData[@"message"]];
+        }
+        
+        
+    } withFailureBlock:^(NSError *error) {
+        
+    }];
+
+
+}
+
+-(void)setNavButtonDisabled
+{
+    if(self.navigationItem.rightBarButtonItems.count > 0)
+    {
+        for (UIBarButtonItem * myButtonItemObj in self.navigationItem.rightBarButtonItems) {
+            myButtonItemObj.enabled = FALSE;
+
+            
+            return;
+
+        }
+    }
+    
+    if(self.navigationItem.leftBarButtonItems.count > 0)
+    {
+        for (UIBarButtonItem * myButtonItemObj in self.navigationItem.leftBarButtonItems) {
+            myButtonItemObj.enabled = FALSE;
+        }
+    }
+}
+
+-(void)setNavButtonEnabled
+{
+    if(self.navigationItem.rightBarButtonItems.count > 0)
+    {
+        for (UIBarButtonItem * myButtonItemObj in self.navigationItem.rightBarButtonItems) {
+            myButtonItemObj.enabled = TRUE;
+        }
+    }
+    
+    if(self.navigationItem.leftBarButtonItems.count > 0)
+    {
+        for (UIBarButtonItem * myButtonItemObj in self.navigationItem.leftBarButtonItems) {
+            myButtonItemObj.enabled = TRUE;
+        }
+    }
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+-(void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    [self refreshBadge];
+}
+#pragma mark Events
+
+- (IBAction)btnEditProfileImage:(UIButton *)sender {
+    
+    [[FMS_Utility sharedFMSUtility]openCamera:self isRoundCrop:YES withCompletionBlock:^(UIImage *img) {
+      
+        if (img != nil)
+        {
+          [imgViewProfile setImage:img];
+            isProfilePicChange = YES;
+        }
+    }];
+}
+
+- (IBAction)btnUpdateProfile:(UIButton *)sender {
+    
+    [self updateMyProfileDetail];
+}
+
+- (IBAction)btnSelectGender:(DLRadioButton *)sender {
+    
+     NSLog(@"%@ is selected.\n", sender.selectedButton.titleLabel.text);
+}
+
+
+- (IBAction)btnPrimaryTrailerTypeClicked:(id)sender {
+    
+    
+    
+    SingleSelectionViewController *aVC = [self.storyboard instantiateViewControllerWithIdentifier:@"SingleSelectionViewController"];
+    aVC.arrAllOptions = mutArrDataTrailers;
+    
+    
+    NSInteger Aindex = [mutArrDataTrailers indexOfObject:strPrimaryTrailerType];
+    NSLog(@" %d",Aindex);
+//    aVC.preSelectedOptionIndex = PrimaryTrailerTypeSelectedIndex;
+
+    NSInteger aIndex;
+    if(strPrimaryTrailerType){
+        
+        for(NSInteger i = 0;i<mutArrDataTrailers.count ; i++){
+            
+            if([[mutArrDataTrailers[i] valueForKey:@"name"] isEqualToString:strPrimaryTrailerType]){
+                aIndex = i;
+            }
+        }
+        
+        PrimaryTrailerTypeSelectedIndex = [NSNumber numberWithInt:aIndex];
+        aVC.preSelectedOptionIndex = PrimaryTrailerTypeSelectedIndex;
+    }
+ 
+    
+    __weak typeof(aVC) weakaVC = aVC;
+    
+    aVC.completionBlockSelectedOptionsIndex = ^(NSNumber* aSelectedIndex){
+        NSLog(@"Selected index:%@ ",aSelectedIndex);
+        
+        
+        
+        PrimaryTrailerTypeSelectedIndex = aSelectedIndex;
+      
+        
+        indexPrimaryTrailerType = [NSString stringWithFormat:@"%@", aSelectedIndex];
+        [btnPrimaryTrailerType setTitleColor: [UIColor colorWithRed:95.0/255.0 green:179.0/255.0 blue:54.0/255.0 alpha:1.0] forState:UIControlStateNormal];
+        NSInteger selectedIndedx = [aSelectedIndex integerValue];
+        
+        strAlternateTrailerType =[mutArrDataTrailers[selectedIndedx] valueForKey:@"name"];
+
+        [btnPrimaryTrailerType setTitle:[NSString stringWithFormat:@"%@",[mutArrDataTrailers[selectedIndedx] valueForKey:@"name"]] forState:UIControlStateNormal];
+        
+        [weakaVC removeFromParent];
+    };
+    
+    [self.navigationController.view addSubview:aVC.view];
+    [self.navigationController addChildViewController:aVC];
+}
+
+
+- (IBAction)btnAlternateTrailerTypeClicked:(id)sender {
+    
+    
+    MultipleSelectionViewController *aVC = [self.storyboard instantiateViewControllerWithIdentifier:@"MultipleSelectionViewController"];
+    
+    aVC.arrAllOptions = mutArrDataTrailers;
+//    aVC.preSelectedOptionsIndexes = arrAlternateTrailerTypeSelectedIndexes;
+
+    
+    
+    if(objFFMS_ProfileDetail && arrAlternateTrailerTypeSelectedIndexes.count <= 0 && ![btnAlternateTrailerType.titleLabel.text isEqualToString:@"Select"]){
+        NSArray *aTypes = [objFFMS_ProfileDetail.alternateTrailerType valueForKey:@"name"];
+        NSMutableArray* aTempArray = [[NSMutableArray alloc]init];
+        
+        for(int i = 0 ;i< aTypes.count;i++){
+            
+            for(int j = 0 ;j< mutArrDataTrailers.count;j++){
+                
+                if([aTypes[i] isEqualToString:[mutArrDataTrailers[j] valueForKey:@"name"]]){
+                    
+                    [aTempArray addObject:[NSNumber numberWithInt:j]];
+                    
+                }
+            }
+        }
+        arrAlternateTrailerTypeSelectedIndexes = aTempArray;
+    }//If close
+    
+    aVC.preSelectedOptionsIndexes = arrAlternateTrailerTypeSelectedIndexes;
+    
+    
+    __weak typeof(aVC) weakaVC = aVC;
+    
+    
+    aVC.completionBlockSelectedOptionsIndex = ^(NSArray* aSelectedIndex,NSArray* aContentData) {
+        
+        arrAlternateTrailerTypeSelectedIndexes = aSelectedIndex;
+        
+        strAlternateTrailerType = [[aContentData valueForKey:@"name"] componentsJoinedByString:@","];
+        indexAlternateTrailerType = [[aContentData valueForKey:@"id"] componentsJoinedByString:@","];
+        
+        if (!(aSelectedIndex.count > 0)) {
+            btnAlternateTrailerType.titleLabel.text = @"";
+            [btnAlternateTrailerType setTitle:@"Select" forState:UIControlStateNormal];
+
+            [btnAlternateTrailerType setTitleColor: [UIColor colorWithRed:170.0/255.0 green:170/255.0 blue:170.0/255.0 alpha:1.0] forState:UIControlStateNormal];
+
+        }else{
+            [btnAlternateTrailerType setTitle:[NSString stringWithFormat:@"%@",strAlternateTrailerType] forState:UIControlStateNormal];
+            [btnAlternateTrailerType setTitleColor: [UIColor colorWithRed:95.0/255.0 green:179.0/255.0 blue:54.0/255.0 alpha:1.0] forState:UIControlStateNormal];
+
+        }
+        
+
+        NSLog(@"strAlternateTrailerType is %@",strAlternateTrailerType);
+        [weakaVC removeFromParent];
+        
+    };
+    [self.navigationController.view addSubview:aVC.view];
+    [self.navigationController addChildViewController:aVC];
+    
+    
+}
+
+
+#pragma mark OtherMethods
+
+-(void)setUI
+{
+    [txtFName setTintColor:FMS_WhiteColor];
+    [txtFMobileNo setTintColor:FMS_WhiteColor];
+    [txtFEmergencyNo setTintColor:FMS_WhiteColor];
+    [txtFAddress setTintColor:FMS_WhiteColor];
+    if ([FMS_Utility isLoginFromDriver])
+    {
+       [self setNavigationBarWithTitle:@"My Profile" withBack:false];
+       [self setFrameForDriver];
+    }
+    else
+    {
+        if (self.isViewDriverProfile)
+        {
+            [self setNavigationBarWithTitle:@"Driver Profile" withBack:true];
+            [self setFrameForDriver];
+            [txtFName setTextColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5]];
+            [txtFMobileNo setTextColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5]];
+            [txtFEmergencyNo setTextColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5]];
+            [txtFBirthDate setTextColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5]];
+            [txtFAddress setTextColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5]];
+            [btnMale setTitleColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5] forState:UIControlStateNormal];
+            [btnFemale setTitleColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5] forState:UIControlStateNormal];
+            [txtFName setUserInteractionEnabled:NO];
+            [txtFMobileNo setUserInteractionEnabled:NO];
+            [txtFEmergencyNo setUserInteractionEnabled:NO];
+            [txtFBirthDate setUserInteractionEnabled:NO];
+            [txtFAddress setUserInteractionEnabled:NO];
+            [btnFemale setUserInteractionEnabled:NO];
+            [btnMale setUserInteractionEnabled:NO];
+            [btnUpdateProfile setHidden:YES];
+            [btnEditProfileImage setHidden:YES];
+            [objScrollview setContentSize:CGSizeMake([UIScreen mainScreen].bounds.size.width, viewAddress.frame.size.height+viewAddress.frame.origin.y+20)];
+        }
+        else
+        {
+           [self setNavigationBarWithTitle:@"My Profile" withBack:false];
+           [self setFrameForContarctor];
+        }
+    }
+    
+    [txtFBirthDate setTintColor:[UIColor clearColor]];
+//    [[FMS_Utility sharedFMSUtility]addPicker:self onTextField:txtFBirthDate pickerType:@"Date" withKey:@"" withCompletionBlock:^(id picker, int buttonIndex, int firstindex, int secondindex) {
+//        
+//        [txtFBirthDate resignFirstResponder];
+//        if (buttonIndex == 1) {
+//            
+//            UIDatePicker *datePicker = (UIDatePicker*)picker;
+//            NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+//            [formatter setDateFormat:@"yyyy/MM/dd"];
+//            txtFBirthDate.text = [NSString stringWithFormat:@"%@",[formatter stringFromDate:datePicker.date]];
+//        }
+//    } withPickerArray:nil withPickerSecondArray:nil count:0 withTitle:@""];
+//    
+//    [[FMS_Utility sharedFMSUtility]addPicker:self onTextField:txtFInsurancePolicyExpDate pickerType:@"Date" withKey:@"" withCompletionBlock:^(id picker, int buttonIndex, int firstindex, int secondindex) {
+//        
+//        [txtFInsurancePolicyExpDate resignFirstResponder];
+//        if (buttonIndex == 1) {
+//            
+//            UIDatePicker *datePicker = (UIDatePicker*)picker;
+//            NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+//            [formatter setDateFormat:@"yyyy/MM/dd"];
+//            txtFInsurancePolicyExpDate.text = [NSString stringWithFormat:@"%@",[formatter stringFromDate:datePicker.date]];
+//        }
+//    } withPickerArray:nil withPickerSecondArray:nil count:0 withTitle:@""];
+//    
+//    
+//    [[FMS_Utility sharedFMSUtility]addPicker:self onTextField:txtGeneralExpirationDate pickerType:@"Date" withKey:@"" withCompletionBlock:^(id picker, int buttonIndex, int firstindex, int secondindex) {
+//        
+//        [txtGeneralExpirationDate resignFirstResponder];
+//        if (buttonIndex == 1) {
+//            
+//            UIDatePicker *datePicker = (UIDatePicker*)picker;
+//            NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+//            [formatter setDateFormat:@"yyyy/MM/dd"];
+//            txtGeneralExpirationDate.text = [NSString stringWithFormat:@"%@",[formatter stringFromDate:datePicker.date]];
+//        }
+//    } withPickerArray:nil withPickerSecondArray:nil count:0 withTitle:@""];
+//    
+//    
+//    [[FMS_Utility sharedFMSUtility]addPicker:self onTextField:txtCargoInsuranceExDate pickerType:@"Date" withKey:@"" withCompletionBlock:^(id picker, int buttonIndex, int firstindex, int secondindex) {
+//        
+//        [txtCargoInsuranceExDate resignFirstResponder];
+//        if (buttonIndex == 1) {
+//            
+//            UIDatePicker *datePicker = (UIDatePicker*)picker;
+//            NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+//            [formatter setDateFormat:@"yyyy/MM/dd"];
+//            txtCargoInsuranceExDate.text = [NSString stringWithFormat:@"%@",[formatter stringFromDate:datePicker.date]];
+//        }
+//    } withPickerArray:nil withPickerSecondArray:nil count:0 withTitle:@""];
+//    
+//    [[FMS_Utility sharedFMSUtility]addPicker:self onTextField:txtAutoLiabilityExDate pickerType:@"Date" withKey:@"" withCompletionBlock:^(id picker, int buttonIndex, int firstindex, int secondindex) {
+//        
+//        [txtAutoLiabilityExDate resignFirstResponder];
+//        if (buttonIndex == 1) {
+//            
+//            UIDatePicker *datePicker = (UIDatePicker*)picker;
+//            NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+//            [formatter setDateFormat:@"yyyy/MM/dd"];
+//            txtAutoLiabilityExDate.text = [NSString stringWithFormat:@"%@",[formatter stringFromDate:datePicker.date]];
+//        }
+//    } withPickerArray:nil withPickerSecondArray:nil count:0 withTitle:@""];
+}
+
+-(void)setFrameForDriver
+{
+    [viewDrivers setHidden:YES];
+//    [viewBirthDate setFrame:viewDrivers.frame];
+//    [viewGender setFrame:CGRectMake(viewGender.frame.origin.x, viewBirthDate.frame.size.height+viewBirthDate.frame.origin.y
+//                                    , viewGender.frame.size.width, viewGender.frame.size.height)];
+//    [viewAddress setFrame:CGRectMake(viewAddress.frame.origin.x, viewGender.frame.size.height+viewGender.frame.origin.y
+//                                     , viewAddress.frame.size.width, viewAddress.frame.size.height)];
+    
+//    [btnUpdateProfile setFrame:CGRectMake(btnUpdateProfile.frame.origin.x, viewAddress.frame.size.height+viewAddress.frame.origin.y+20
+//                                          , btnUpdateProfile.frame.size.width, btnUpdateProfile.frame.size.height)];
+    [objScrollview setContentSize:CGSizeMake([UIScreen mainScreen].bounds.size.width, btnUpdateProfile.frame.size.height+btnUpdateProfile.frame.origin.y+20)];
+
+}
+
+-(void)setFrameForContarctor
+{
+    [viewContractorName setHidden:YES];
+    [viewEmailId setFrame:viewContractorName.frame];
+    [viewMobileNo setFrame:CGRectMake(viewMobileNo.frame.origin.x, viewEmailId.frame.size.height+viewEmailId.frame.origin.y
+                                      , viewMobileNo.frame.size.width, viewMobileNo.frame.size.height)];
+    [viewEmergencyNo setFrame:CGRectMake(viewEmergencyNo.frame.origin.x, viewMobileNo.frame.size.height+viewMobileNo.frame.origin.y
+                                      , viewEmergencyNo.frame.size.width, viewEmergencyNo.frame.size.height)];
+    [viewDrivers setFrame:CGRectMake(viewDrivers.frame.origin.x, viewEmergencyNo.frame.size.height+viewEmergencyNo.frame.origin.y
+                                     , viewDrivers.frame.size.width, viewDrivers.frame.size.height)];
+    [viewBirthDate setFrame:CGRectMake(viewBirthDate.frame.origin.x, viewDrivers.frame.size.height+viewDrivers.frame.origin.y
+                                       , viewBirthDate.frame.size.width, viewBirthDate.frame.size.height)];
+    [viewGender setFrame:CGRectMake(viewGender.frame.origin.x, viewBirthDate.frame.size.height+viewBirthDate.frame.origin.y
+                                    , viewGender.frame.size.width, viewGender.frame.size.height)];
+    [viewAddress setFrame:CGRectMake(viewAddress.frame.origin.x, viewGender.frame.size.height+viewGender.frame.origin.y
+                                     , viewAddress.frame.size.width, viewAddress.frame.size.height)];
+    
+    [btnUpdateProfile setFrame:CGRectMake(btnUpdateProfile.frame.origin.x, viewAddress.frame.size.height+viewAddress.frame.origin.y+20
+                                          , btnUpdateProfile.frame.size.width, btnUpdateProfile.frame.size.height)];
+    [objScrollview setContentSize:CGSizeMake([UIScreen mainScreen].bounds.size.width, btnUpdateProfile.frame.size.height+btnUpdateProfile.frame.origin.y+20)];
+}
+
+-(void)getMyProfileDetail
+{
+    NSMutableDictionary *aMutDictObj = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[UserDefaults objectForKey:FMS_LoginUserType],@"role",[UserDefaults objectForKey:FMS_LoginUserToken],@"token", nil];
+    
+    if (self.isViewDriverProfile)
+    {
+        [aMutDictObj setObject:self.strDriverId forKey:@"user_id"];
+    }
+    Webservice *WebserviceObj = [[Webservice alloc] init];
+    [WebserviceObj callWebserviceWithURL:[NSString stringWithFormat:@"%@/users/get_profile",FMS_WSURL] withSilentCall:NO withParams:aMutDictObj forViewController:self withCompletionBlock:^(NSDictionary *responseData) {
+        
+        if([responseData[@"status"] intValue] == 1 )
+        {
+            objFFMS_ProfileDetail = [[FMS_ProfileDetail alloc]initWithDictionary:responseData[@"data"][0]];
+            NSLog(@"Response Data is %@",objFFMS_ProfileDetail);
+            
+            [self setProfileDetail];
+        }
+        else
+        {
+            [FMS_Utility showAlert:responseData[@"message"]];
+        }
+        
+    } withFailureBlock:^(NSError *error) {
+        
+    }];
+}
+
+-(void)updateMyProfileDetail
+{
+    if ([self checkAllFields])
+    {
+        NSString *strGender;
+        if (btnMale.isSelected)
+        strGender = @"Male";
+        
+        else
+        strGender = @"Female";
+    
+        NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+        [formatter setDateFormat:@"MM/dd/yyyy"];
+        NSDate *date = [formatter dateFromString:txtFBirthDate.text];
+        [formatter setDateFormat:@"yyyy/MM/dd"];
+        NSString *strDate = [formatter stringFromDate:date];
+
+        NSMutableDictionary *aMutDictObj = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[UserDefaults objectForKey:FMS_LoginUserType],@"role",[UserDefaults objectForKey:FMS_LoginUserToken],@"token",txtFName.text,@"name",txtFMobileNo.text,@"contact_number",txtFEmergencyNo.text,@"emergency_contact_number",txtFBirthDate.text,@"date_of_birth",strGender,@"gender",txtFAddress.text,@"address", nil];
+
+        
+        [aMutDictObj setObject:txtBusinessName.text forKey:@"buisness_name"];
+        [aMutDictObj setObject:txtHaulerID.text forKey:@"hauler_id"];
+        [aMutDictObj setObject:txtGeneralExpirationDate.text forKey:@"genral_exp_date"];
+        [aMutDictObj setObject:txtAutoLiabilityExDate.text forKey:@"auto_exp_date"];
+        [aMutDictObj setObject:txtCargoInsuranceExDate.text forKey:@"cargo_exp_date"];
+        [aMutDictObj setObject:txtPrimaryPhoneNo.text forKey:@"primary_no"];
+        [aMutDictObj setObject:txtAlternatePhoneNo.text forKey:@"alternate_no"];
+        
+        
+        [aMutDictObj setObject:indexPrimaryTrailerType  forKey:@"primary_trailer_type"];
+        [aMutDictObj setObject:indexAlternateTrailerType forKey:@"alternate_trailer_type"];
+        
+        [aMutDictObj setObject:txtPakingAddress.text forKey:@"parking_address"];
+        
+        [aMutDictObj setObject:txtFInsurancePolicyName.text forKey:@"policy_name"];
+        [aMutDictObj setObject:txtFInsurancePolicyNo.text forKey:@"policy_no"];
+        
+        //txtFInsurancePolicyName.text,@"ins_policyname",
+        //txtFInsurancePolicyNo.text,@"ins_policyno",
+        
+        
+          if (isProfilePicChange)
+          {
+            [aMutDictObj setObject:@"avatar" forKey:@"ParamName1"];
+            [aMutDictObj setObject:imgViewProfile.image forKey:@"Image1"];
+          }
+        
+        Webservice *WebserviceObj = [[Webservice alloc] init];
+        
+        [WebserviceObj callWebserviceToUploadImageWithURL:[NSString stringWithFormat:@"%@/users/update_profile",FMS_WSURL] withSilentCall:NO withParams:aMutDictObj forViewController:self withCompletionBlock:^(NSDictionary *responseData) {
+            
+            if([responseData[@"status"] intValue] == 1 )
+            {
+               [FMS_Utility showAlert:responseData[@"message"]];
+                objFFMS_ProfileDetail = [[FMS_ProfileDetail alloc]initWithDictionary:responseData[@"data"][0]];
+                [self setProfileDetail];
+//                FMS_LoginProfileStatus
+                UDSetObject(@"0", FMS_LoginProfileStatus);
+                // 0 Completed
+                // 1 InCompleted
+                
+            }
+            else
+            {
+                [FMS_Utility showAlert:responseData[@"message"]];
+            }
+
+            
+        } withFailureBlock:^(NSError *error) {
+            
+        }];
+    }
+    else
+    {
+//        [FMS_Utility showAlert:@"Name can not be blank."];
+    }
+}
+
+//-(BOOL)checkAllFields
+//{
+//    BOOL isSucceed = YES;
+//    
+//    if ([FMS_Utility isEmptyText:txtFName.text])
+//    {
+//        isSucceed = NO;
+//    }
+////    else if ([FMS_Utility isEmptyText:txtFMobileNo.text])
+////    {
+////        isSucceed = NO;
+////    }
+////    else if ([FMS_Utility isEmptyText:txtFBirthDate.text])
+////    {
+////        isSucceed = NO;
+////    }
+////    else if ([FMS_Utility isEmptyText:txtFAddress.text])
+////    {
+////        isSucceed = NO;
+////    }
+//    return isSucceed;
+//}
+
+
+-(BOOL)checkAllFields
+{
+    BOOL isSucceed = YES;
+    
+    if ([FMS_Utility isEmptyText:txtBusinessName.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Business Name should not be blank."];
+    }
+    else if ([FMS_Utility isEmptyText:txtHaulerID.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Hauler ID should not be blank."];
+    }
+    //    else if ([FMS_Utility isEmptyText:txtFName.text])
+    //    {
+    //        isSucceed = NO;
+    //        [FMS_Utility showAlert:@"Driver Name should not be blank."];
+    //    }
+    else if ([FMS_Utility isEmptyText:txtFEmailId.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter email id"];
+    }
+    else if ([FMS_Utility isEmptyText:txtFInsurancePolicyName.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter policy name."];
+    }
+    else if ([FMS_Utility isEmptyText:txtFInsurancePolicyNo.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter policy number."];
+    }
+    else if ([FMS_Utility isEmptyText:txtGeneralExpirationDate.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter general liability Expiration date."];
+    }
+    else if ([FMS_Utility isEmptyText:txtAutoLiabilityExDate.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter auto liability Expiration date."];
+    }
+    else if ([FMS_Utility isEmptyText:txtCargoInsuranceExDate.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter cargo liability Expiration date."];
+    }
+    else if ([FMS_Utility isEmptyText:txtPrimaryPhoneNo.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter primary mobile no."];
+    }
+    else if(![FMS_Utility validateMobileNumber:txtPrimaryPhoneNo.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter valid primary mobile no."];
+        
+    }
+    else if ([FMS_Utility isEmptyText:txtAlternatePhoneNo.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter alternate mobile no."];
+    }
+    else if(![FMS_Utility validateMobileNumber:txtAlternatePhoneNo.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter valid alternate mobile no."];
+        
+    }
+    else if ([FMS_Utility isEmptyText:txtFEmergencyNo.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter emergency contact no."];
+    }
+    else if(![FMS_Utility validateMobileNumber:txtFEmergencyNo.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter valid emergency mobile no."];
+        
+    }
+    //    else if ([FMS_Utility isEmptyText:txtPrimaryTrailerType.text])
+    //    {
+    //        isSucceed = NO;
+    //        [FMS_Utility showAlert:@"Please select primary trailer type."];
+    //    }
+    else if ([btnPrimaryTrailerType.titleLabel.text isEqualToString:@"Select"] || [btnPrimaryTrailerType.titleLabel.text isEqualToString:@""])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please select primary trailer type."];
+    }
+    else if ([btnAlternateTrailerType.titleLabel.text isEqualToString:@"Select"] || [btnAlternateTrailerType.titleLabel.text isEqualToString:@""])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please select alternate trailer type."];
+    }
+    else if ([FMS_Utility isEmptyText:txtFAddress.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter address."];
+    }
+    else if ([FMS_Utility isEmptyText:txtPakingAddress.text])
+    {
+        isSucceed = NO;
+        [FMS_Utility showAlert:@"Please enter pakking address."];
+    }
+    
+   
+   
+   
+    
+    
+    return isSucceed;
+}
+
+-(void)setProfileDetail
+{
+     [UserDefaults setObject:[NSString stringWithFormat:@"%@",objFFMS_ProfileDetail.avatar] forKey:FMS_LoginUserAvtar];
+     [imgViewCover setImageWithURL:[NSURL URLWithString:objFFMS_ProfileDetail.blurImg]];
+     [imgViewProfile setImageWithURL:[NSURL URLWithString:objFFMS_ProfileDetail.avatar] placeholderImage:[UIImage imageNamed:@"img_ProfileDefault"]];
+    
+    [UserDefaults setObject:objFFMS_ProfileDetail.name forKey:FMS_LoginUserName];
+    [UserDefaults setObject:objFFMS_ProfileDetail.avatar forKey:FMS_LoginUserAvtar];
+    [UserDefaults synchronize];
+    
+     [txtFName setText:objFFMS_ProfileDetail.name];
+     [txtFContractorName setText:objFFMS_ProfileDetail.contractorName];
+     [txtFDrivers setText:objFFMS_ProfileDetail.noOfDriver];
+     [txtFEmailId setText:objFFMS_ProfileDetail.emailId];
+     [txtFMobileNo setText:objFFMS_ProfileDetail.mobileNo];
+     [txtFEmergencyNo setText:objFFMS_ProfileDetail.emergencyContactNumber];
+     [txtFAddress setText:objFFMS_ProfileDetail.address];
+    
+    txtFBirthDate.text = objFFMS_ProfileDetail.dateOfBirth;
+    txtGeneralExpirationDate.text = [FMS_Utility formatStringTODateTOString: objFFMS_ProfileDetail.generalExpirationDate];
+    txtAutoLiabilityExDate.text = [FMS_Utility formatStringTODateTOString: objFFMS_ProfileDetail.autoLiabilityExDate];
+    txtCargoInsuranceExDate.text = [FMS_Utility formatStringTODateTOString: objFFMS_ProfileDetail.cargoInsuranceExDate];
+    
+    
+    if (objFFMS_ProfileDetail != nil && objFFMS_ProfileDetail.primaryTrailerType != nil) {
+        
+        if (![objFFMS_ProfileDetail.primaryTrailerType isKindOfClass:[NSString class]]) {
+            
+            indexPrimaryTrailerType = [objFFMS_ProfileDetail.primaryTrailerType valueForKey:@"id"];
+            strPrimaryTrailerType = [objFFMS_ProfileDetail.primaryTrailerType valueForKey:@"name"];
+            [btnPrimaryTrailerType setTitle:[NSString stringWithFormat:@"%@",strPrimaryTrailerType] forState:UIControlStateNormal];
+            
+            [btnPrimaryTrailerType setTitleColor: [UIColor colorWithRed:95.0/255.0 green:179.0/255.0 blue:54.0/255.0 alpha:1.0] forState:UIControlStateNormal];
+
+        }
+        else
+        {
+            [btnPrimaryTrailerType setTitle:@"Select" forState:UIControlStateNormal];
+            [btnPrimaryTrailerType setTitleColor: [UIColor grayColor] forState:UIControlStateNormal];
+
+        }
+        
+    }
+    
+    
+    
+    if (objFFMS_ProfileDetail != nil && objFFMS_ProfileDetail.alternateTrailerType != nil) {
+        
+        if (![objFFMS_ProfileDetail.alternateTrailerType isKindOfClass:[NSString class]]) {
+            
+            indexAlternateTrailerType = [objFFMS_ProfileDetail.alternateTrailerType valueForKey:@"id"];
+            
+            indexAlternateTrailerType = [[objFFMS_ProfileDetail.alternateTrailerType valueForKey:@"id"] componentsJoinedByString:@","];
+            NSString *strAlternateTrailerTypeAll = [[objFFMS_ProfileDetail.alternateTrailerType valueForKey:@"name"] componentsJoinedByString:@","];
+            strAlternateTrailerType = strAlternateTrailerTypeAll;
+            [btnAlternateTrailerType setTitle:[NSString stringWithFormat:@"%@",strAlternateTrailerType] forState:UIControlStateNormal];
+            
+            [btnAlternateTrailerType setTitleColor: [UIColor colorWithRed:95.0/255.0 green:179.0/255.0 blue:54.0/255.0 alpha:1.0] forState:UIControlStateNormal];
+
+           
+        }
+        else{
+            [btnAlternateTrailerType setTitle:@"Select" forState:UIControlStateNormal];
+            [btnAlternateTrailerType setTitleColor: [UIColor grayColor] forState:UIControlStateNormal];
+
+        }
+        
+    }
+    
+    
+   
+    
+    
+    
+    /*if (objFFMS_ProfileDetail.primaryTrailerType) {
+        if([objFFMS_ProfileDetail.primaryTrailerType valueForKey:@"id"]){
+            indexPrimaryTrailerType = [objFFMS_ProfileDetail.primaryTrailerType valueForKey:@"id"];
+            
+            strPrimaryTrailerType = [objFFMS_ProfileDetail.primaryTrailerType valueForKey:@"name"];
+            [btnPrimaryTrailerType setTitle:[NSString stringWithFormat:@"%@",strPrimaryTrailerType] forState:UIControlStateNormal];
+            
+        }
+    }*/
+    
+  /*
+    if (objFFMS_ProfileDetail.alternateTrailerType) {
+        
+        if ([objFFMS_ProfileDetail.alternateTrailerType valueForKey:@"id"]) {
+            indexAlternateTrailerType = [objFFMS_ProfileDetail.alternateTrailerType valueForKey:@"id"];
+            
+            indexAlternateTrailerType = [[objFFMS_ProfileDetail.alternateTrailerType valueForKey:@"id"] componentsJoinedByString:@","];
+            NSString *strAlternateTrailerTypeAll = [[objFFMS_ProfileDetail.alternateTrailerType valueForKey:@"name"] componentsJoinedByString:@","];
+            strAlternateTrailerType = strAlternateTrailerTypeAll;
+            [btnAlternateTrailerType setTitle:[NSString stringWithFormat:@"%@",strAlternateTrailerType] forState:UIControlStateNormal];
+            
+        }
+    }*/
+//
+    
+  
+    
+    
+    [txtBusinessName setText:objFFMS_ProfileDetail.businessName];
+    [txtHaulerID setText:objFFMS_ProfileDetail.haulerID];
+//    [txtGeneralExpirationDate setText:objFFMS_ProfileDetail.generalExpirationDate];
+//    [txtAutoLiabilityExDate setText:objFFMS_ProfileDetail.autoLiabilityExDate];
+//    [txtCargoInsuranceExDate setText:objFFMS_ProfileDetail.cargoInsuranceExDate];
+    [txtPrimaryPhoneNo setText:objFFMS_ProfileDetail.primaryPhoneNo];
+    [txtAlternatePhoneNo setText:objFFMS_ProfileDetail.alternatePhoneNo];
+    [txtPakingAddress setText:objFFMS_ProfileDetail.pakingAddress];
+    [txtFInsurancePolicyName setText:objFFMS_ProfileDetail.insurancePolicyName];
+    [txtFInsurancePolicyNo setText:objFFMS_ProfileDetail.insurancePolicyNumber];
+    
+    if ([txtHaulerID.text isEqualToString:@"0"]) {
+        txtHaulerID.text = @"";
+    }
+    if ([txtGeneralExpirationDate.text isEqualToString:@"0000-00-00"])
+    {
+        txtGeneralExpirationDate.text = @"";
+    }
+    if ([txtCargoInsuranceExDate.text isEqualToString:@"0000-00-00"])
+    {
+        txtCargoInsuranceExDate.text = @"";
+    }
+    if ([txtAutoLiabilityExDate.text isEqualToString:@"0000-00-00"])
+    {
+        txtAutoLiabilityExDate.text = @"";
+    }
+    
+    
+    
+    
+
+
+  
+
+    
+     if ([objFFMS_ProfileDetail.gender isEqualToString:@"Male"])
+     {
+         [btnMale setSelected:YES];
+     }
+     else
+     {
+        [btnFemale setSelected:YES];
+     }
+}
+
+
+-(void)getAPICALL{
+    
+    
+    Webservice *WebserviceObj = [[Webservice alloc] init];
+    [WebserviceObj callWebserviceWithGET:[NSString stringWithFormat:@"%@/users/trailers",FMS_WSURL] withSilentCall:NO withParams:NO forViewController:self withCompletionBlock:^(NSDictionary *responseData) {
+        
+        NSLog(@"Repons is %@",responseData);
+        
+        if([responseData[@"status"] intValue]==1)
+        {
+            for(NSDictionary*aDictObj in responseData[@"data"])
+            {
+                NSMutableDictionary *aMutDict = [[NSMutableDictionary alloc] init];
+                [aMutDict setObject:aDictObj[@"name"] forKey:@"name"];
+                [aMutDict setObject:aDictObj[@"id"] forKey:@"id"];
+                
+                
+                
+                [mutArrDataTrailers addObject:aMutDict];
+            }
+            NSLog(@"Array is %@",mutArrDataTrailers);
+//            [UserDefaults setObject:mutArrDataTrailers forKey:FMS_arrGetTrailerData];
+//            [UserDefaults synchronize];
+            
+        }
+        else
+        {
+            [FMS_Utility showAlert:responseData[@"message"]];
+        }
+        
+    } withFailureBlock:^(NSError *error) {
+        
+    }];
+    
+    
+    
+    
+}
+#pragma mark TextFieldDelegate
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField
+{
+    [textField resignFirstResponder];
+    return YES;
+}
+
+
+- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
+{
+    BOOL shouldReplace = YES;
+    
+    if ([textField isEqual:txtAlternatePhoneNo] || [textField isEqual:txtPrimaryPhoneNo] || [textField isEqual:txtFEmergencyNo])
+    {
+        if (textField.text.length >= 10 && string.length > 0)
+            shouldReplace = NO;
+        
+        NSCharacterSet* numberCharSet = [NSCharacterSet characterSetWithCharactersInString:@"0123456789"];
+        for (int i = 0; i < [string length]; ++i)
+        {
+            unichar c = [string characterAtIndex:i];
+            if (![numberCharSet characterIsMember:c])
+            {
+                return NO;
+            }
+        }
+        
+    }
+    return shouldReplace;
+}
+
+- (BOOL)textFieldShouldBeginEditing:(UITextField *)textField {
+    
+    if (textField.tag == 100) {
+        
+        [[FMS_Utility sharedFMSUtility]addPicker:self onTextField:txtGeneralExpirationDate pickerType:@"Date" withKey:@"" withCompletionBlock:^(id picker, int buttonIndex, int firstindex, int secondindex) {
+            
+            [txtGeneralExpirationDate resignFirstResponder];
+            if (buttonIndex == 1) {
+                
+                UIDatePicker *datePicker = (UIDatePicker *)picker;
+                NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+                [formatter setDateFormat:@"yyyy/MM/dd"];
+                txtGeneralExpirationDate.text = [NSString stringWithFormat:@"%@",[formatter stringFromDate:datePicker.date]];
+            }
+        } withPickerArray:nil withPickerSecondArray:nil count:0 withTitle:@""];
+        
+    }
+    else if (textField.tag == 200)
+    {
+        [[FMS_Utility sharedFMSUtility]addPicker:self onTextField:txtAutoLiabilityExDate pickerType:@"Date" withKey:@"" withCompletionBlock:^(id picker, int buttonIndex, int firstindex, int secondindex) {
+            
+            [txtAutoLiabilityExDate resignFirstResponder];
+            if (buttonIndex == 1) {
+                
+                UIDatePicker *datePicker = (UIDatePicker *)picker;
+                NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+                [formatter setDateFormat:@"yyyy/MM/dd"];
+                txtAutoLiabilityExDate.text = [NSString stringWithFormat:@"%@",[formatter stringFromDate:datePicker.date]];
+            }
+        } withPickerArray:nil withPickerSecondArray:nil count:0 withTitle:@""];
+        
+    }
+    else if (textField.tag == 300)
+    {
+        [[FMS_Utility sharedFMSUtility]addPicker:self onTextField:txtCargoInsuranceExDate pickerType:@"Date" withKey:@"" withCompletionBlock:^(id picker, int buttonIndex, int firstindex, int secondindex) {
+            
+            [txtCargoInsuranceExDate resignFirstResponder];
+            if (buttonIndex == 1) {
+                
+                UIDatePicker *datePicker = (UIDatePicker *)picker;
+                NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+                [formatter setDateFormat:@"yyyy/MM/dd"];
+                txtCargoInsuranceExDate.text = [NSString stringWithFormat:@"%@",[formatter stringFromDate:datePicker.date]];
+            }
+        } withPickerArray:nil withPickerSecondArray:nil count:0 withTitle:@""];
+        
+    }
+    else if (textField.tag == 400)
+    {
+        [[FMS_Utility sharedFMSUtility]addPicker:self onTextField:txtFBirthDate pickerType:@"Date" withKey:@"" withCompletionBlock:^(id picker, int buttonIndex, int firstindex, int secondindex) {
+            
+            [txtFBirthDate resignFirstResponder];
+            if (buttonIndex == 1) {
+                
+                UIDatePicker *datePicker = (UIDatePicker *)picker;
+                NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+                [formatter setDateFormat:@"yyyy/MM/dd"];
+                txtFBirthDate.text = [NSString stringWithFormat:@"%@",[formatter stringFromDate:datePicker.date]];
+            }
+        } withPickerArray:nil withPickerSecondArray:nil count:0 withTitle:@""];
+        
+        
+    }
+    
+    return YES;
+}
+
+@end

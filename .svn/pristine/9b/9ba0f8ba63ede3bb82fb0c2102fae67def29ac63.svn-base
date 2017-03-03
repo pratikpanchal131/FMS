@@ -1,0 +1,295 @@
+//
+//  FMS_ProfileVC.m
+//  FMS
+//
+//  Created by indianic on 07/08/15.
+//  Copyright (c) 2015 indianic. All rights reserved.
+//
+
+#import "FMS_ProfileVC.h"
+
+@interface FMS_ProfileVC ()
+
+@end
+
+@implementation FMS_ProfileVC
+
+#pragma mark View lifecycle
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    [self setUI];
+    [self getMyProfileDetail];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+-(void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    [self refreshBadge];
+}
+#pragma mark Events
+
+- (IBAction)btnEditProfileImage:(UIButton *)sender {
+    
+    [[FMS_Utility sharedFMSUtility]openCamera:self isRoundCrop:YES withCompletionBlock:^(UIImage *img) {
+      
+        if (img != nil)
+        {
+          [imgViewProfile setImage:img];
+            isProfilePicChange = YES;
+        }
+    }];
+}
+
+- (IBAction)btnUpdateProfile:(UIButton *)sender {
+    
+    [self updateMyProfileDetail];
+}
+
+- (IBAction)btnSelectGender:(DLRadioButton *)sender {
+    
+     NSLog(@"%@ is selected.\n", sender.selectedButton.titleLabel.text);
+}
+
+#pragma mark OtherMethods
+
+-(void)setUI
+{
+    [txtFName setTintColor:FMS_WhiteColor];
+    [txtFMobileNo setTintColor:FMS_WhiteColor];
+    [txtFEmergencyNo setTintColor:FMS_WhiteColor];
+    [txtFAddress setTintColor:FMS_WhiteColor];
+    if ([FMS_Utility isLoginFromDriver])
+    {
+       [self setNavigationBarWithTitle:@"My Profile" withBack:false];
+       [self setFrameForDriver];
+    }
+    else
+    {
+        if (self.isViewDriverProfile)
+        {
+            [self setNavigationBarWithTitle:@"Driver Profile" withBack:true];
+            [self setFrameForDriver];
+            [txtFName setTextColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5]];
+            [txtFMobileNo setTextColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5]];
+            [txtFEmergencyNo setTextColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5]];
+            [txtFBirthDate setTextColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5]];
+            [txtFAddress setTextColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5]];
+            [btnMale setTitleColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5] forState:UIControlStateNormal];
+            [btnFemale setTitleColor:[UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.5] forState:UIControlStateNormal];
+            [txtFName setUserInteractionEnabled:NO];
+            [txtFMobileNo setUserInteractionEnabled:NO];
+            [txtFEmergencyNo setUserInteractionEnabled:NO];
+            [txtFBirthDate setUserInteractionEnabled:NO];
+            [txtFAddress setUserInteractionEnabled:NO];
+            [btnFemale setUserInteractionEnabled:NO];
+            [btnMale setUserInteractionEnabled:NO];
+            [btnUpdateProfile setHidden:YES];
+            [btnEditProfileImage setHidden:YES];
+            [objScrollview setContentSize:CGSizeMake([UIScreen mainScreen].bounds.size.width, viewAddress.frame.size.height+viewAddress.frame.origin.y+20)];
+        }
+        else
+        {
+           [self setNavigationBarWithTitle:@"My Profile" withBack:false];
+           [self setFrameForContarctor];
+        }
+    }
+    
+    [txtFBirthDate setTintColor:[UIColor clearColor]];
+    [[FMS_Utility sharedFMSUtility]addPicker:self onTextField:txtFBirthDate pickerType:@"Date" withKey:@"" withCompletionBlock:^(id picker, int buttonIndex, int firstindex, int secondindex) {
+        
+        [txtFBirthDate resignFirstResponder];
+        if (buttonIndex == 1) {
+            
+            UIDatePicker *datePicker = (UIDatePicker*)picker;
+            NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+            [formatter setDateFormat:@"MM/dd/yyyy"];
+            txtFBirthDate.text = [NSString stringWithFormat:@"%@",[formatter stringFromDate:datePicker.date]];
+        }
+    } withPickerArray:nil withPickerSecondArray:nil count:0 withTitle:@""];
+}
+
+-(void)setFrameForDriver
+{
+    [viewDrivers setHidden:YES];
+    [viewBirthDate setFrame:viewDrivers.frame];
+    [viewGender setFrame:CGRectMake(viewGender.frame.origin.x, viewBirthDate.frame.size.height+viewBirthDate.frame.origin.y
+                                    , viewGender.frame.size.width, viewGender.frame.size.height)];
+    [viewAddress setFrame:CGRectMake(viewAddress.frame.origin.x, viewGender.frame.size.height+viewGender.frame.origin.y
+                                     , viewAddress.frame.size.width, viewAddress.frame.size.height)];
+    
+    [btnUpdateProfile setFrame:CGRectMake(btnUpdateProfile.frame.origin.x, viewAddress.frame.size.height+viewAddress.frame.origin.y+20
+                                          , btnUpdateProfile.frame.size.width, btnUpdateProfile.frame.size.height)];
+    [objScrollview setContentSize:CGSizeMake([UIScreen mainScreen].bounds.size.width, btnUpdateProfile.frame.size.height+btnUpdateProfile.frame.origin.y+20)];
+
+}
+
+-(void)setFrameForContarctor
+{
+    [viewContractorName setHidden:YES];
+    [viewEmailId setFrame:viewContractorName.frame];
+    [viewMobileNo setFrame:CGRectMake(viewMobileNo.frame.origin.x, viewEmailId.frame.size.height+viewEmailId.frame.origin.y
+                                      , viewMobileNo.frame.size.width, viewMobileNo.frame.size.height)];
+    [viewEmergencyNo setFrame:CGRectMake(viewEmergencyNo.frame.origin.x, viewMobileNo.frame.size.height+viewMobileNo.frame.origin.y
+                                      , viewEmergencyNo.frame.size.width, viewEmergencyNo.frame.size.height)];
+    [viewDrivers setFrame:CGRectMake(viewDrivers.frame.origin.x, viewEmergencyNo.frame.size.height+viewEmergencyNo.frame.origin.y
+                                     , viewDrivers.frame.size.width, viewDrivers.frame.size.height)];
+    [viewBirthDate setFrame:CGRectMake(viewBirthDate.frame.origin.x, viewDrivers.frame.size.height+viewDrivers.frame.origin.y
+                                       , viewBirthDate.frame.size.width, viewBirthDate.frame.size.height)];
+    [viewGender setFrame:CGRectMake(viewGender.frame.origin.x, viewBirthDate.frame.size.height+viewBirthDate.frame.origin.y
+                                    , viewGender.frame.size.width, viewGender.frame.size.height)];
+    [viewAddress setFrame:CGRectMake(viewAddress.frame.origin.x, viewGender.frame.size.height+viewGender.frame.origin.y
+                                     , viewAddress.frame.size.width, viewAddress.frame.size.height)];
+    
+    [btnUpdateProfile setFrame:CGRectMake(btnUpdateProfile.frame.origin.x, viewAddress.frame.size.height+viewAddress.frame.origin.y+20
+                                          , btnUpdateProfile.frame.size.width, btnUpdateProfile.frame.size.height)];
+    [objScrollview setContentSize:CGSizeMake([UIScreen mainScreen].bounds.size.width, btnUpdateProfile.frame.size.height+btnUpdateProfile.frame.origin.y+20)];
+}
+
+-(void)getMyProfileDetail
+{
+    NSMutableDictionary *aMutDictObj = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[UserDefaults objectForKey:FMS_LoginUserType],@"role",[UserDefaults objectForKey:FMS_LoginUserToken],@"token", nil];
+    
+    if (self.isViewDriverProfile)
+    {
+        [aMutDictObj setObject:self.strDriverId forKey:@"user_id"];
+    }
+    Webservice *WebserviceObj = [[Webservice alloc] init];
+    [WebserviceObj callWebserviceWithURL:[NSString stringWithFormat:@"%@/users/get_profile",FMS_WSURL] withSilentCall:NO withParams:aMutDictObj forViewController:self withCompletionBlock:^(NSDictionary *responseData) {
+        
+        if([responseData[@"status"] intValue] == 1 )
+        {
+            objFFMS_ProfileDetail = [[FMS_ProfileDetail alloc]initWithDictionary:responseData[@"data"][0]];
+            [self setProfileDetail];
+        }
+        else
+        {
+            [FMS_Utility showAlert:responseData[@"message"]];
+        }
+        
+    } withFailureBlock:^(NSError *error) {
+        
+    }];
+}
+
+-(void)updateMyProfileDetail
+{
+    if ([self checkAllFields])
+    {
+        NSString *strGender;
+        if (btnMale.isSelected)
+        strGender = @"Male";
+        
+        else
+        strGender = @"Female";
+    
+        NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+        [formatter setDateFormat:@"MM/dd/yyyy"];
+        NSDate *date = [formatter dateFromString:txtFBirthDate.text];
+        [formatter setDateFormat:@"yyyy/MM/dd"];
+        NSString *strDate = [formatter stringFromDate:date];
+
+        NSMutableDictionary *aMutDictObj = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[UserDefaults objectForKey:FMS_LoginUserType],@"role",[UserDefaults objectForKey:FMS_LoginUserToken],@"token",txtFName.text,@"name",txtFMobileNo.text,@"contact_number",txtFEmergencyNo.text,@"emergency_contact_number",strDate,@"date_of_birth",strGender,@"gender",txtFAddress.text,@"address", nil];
+          if (isProfilePicChange)
+          {
+            [aMutDictObj setObject:@"avatar" forKey:@"ParamName1"];
+            [aMutDictObj setObject:imgViewProfile.image forKey:@"Image1"];
+          }
+        
+        Webservice *WebserviceObj = [[Webservice alloc] init];
+        
+        [WebserviceObj callWebserviceToUploadImageWithURL:[NSString stringWithFormat:@"%@/users/update_profile",FMS_WSURL] withSilentCall:NO withParams:aMutDictObj forViewController:self withCompletionBlock:^(NSDictionary *responseData) {
+            
+            if([responseData[@"status"] intValue] == 1 )
+            {
+               [FMS_Utility showAlert:responseData[@"message"]];
+                objFFMS_ProfileDetail = [[FMS_ProfileDetail alloc]initWithDictionary:responseData[@"data"][0]];
+                [self setProfileDetail];
+                
+                
+            }
+            else
+            {
+                [FMS_Utility showAlert:responseData[@"message"]];
+            }
+
+            
+        } withFailureBlock:^(NSError *error) {
+            
+        }];
+    }
+    else
+    {
+        [FMS_Utility showAlert:@"Name can not be blank."];
+    }
+}
+
+-(BOOL)checkAllFields
+{
+    BOOL isSucceed = YES;
+    
+    if ([FMS_Utility isEmptyText:txtFName.text])
+    {
+        isSucceed = NO;
+    }
+//    else if ([FMS_Utility isEmptyText:txtFMobileNo.text])
+//    {
+//        isSucceed = NO;
+//    }
+//    else if ([FMS_Utility isEmptyText:txtFBirthDate.text])
+//    {
+//        isSucceed = NO;
+//    }
+//    else if ([FMS_Utility isEmptyText:txtFAddress.text])
+//    {
+//        isSucceed = NO;
+//    }
+    return isSucceed;
+}
+
+-(void)setProfileDetail
+{
+     [UserDefaults setObject:[NSString stringWithFormat:@"%@",objFFMS_ProfileDetail.avatar] forKey:FMS_LoginUserAvtar];
+     [imgViewCover setImageWithURL:[NSURL URLWithString:objFFMS_ProfileDetail.blurImg]];
+     [imgViewProfile setImageWithURL:[NSURL URLWithString:objFFMS_ProfileDetail.avatar] placeholderImage:[UIImage imageNamed:@"img_ProfileDefault"]];
+    
+    [UserDefaults setObject:objFFMS_ProfileDetail.name forKey:FMS_LoginUserName];
+    [UserDefaults setObject:objFFMS_ProfileDetail.avatar forKey:FMS_LoginUserAvtar];
+    [UserDefaults synchronize];
+    
+     [txtFName setText:objFFMS_ProfileDetail.name];
+     [txtFContractorName setText:objFFMS_ProfileDetail.contractorName];
+     [txtFDrivers setText:objFFMS_ProfileDetail.noOfDriver];
+     [txtFEmailId setText:objFFMS_ProfileDetail.emailId];
+     [txtFMobileNo setText:objFFMS_ProfileDetail.mobileNo];
+     [txtFEmergencyNo setText:objFFMS_ProfileDetail.emergencyContactNumber];
+     [txtFAddress setText:objFFMS_ProfileDetail.address];
+     [txtFBirthDate setText:objFFMS_ProfileDetail.dateOfBirth];
+     if ([objFFMS_ProfileDetail.gender isEqualToString:@"Male"])
+     {
+         [btnMale setSelected:YES];
+     }
+     else
+     {
+        [btnFemale setSelected:YES];
+     }
+}
+
+#pragma mark TextFieldDelegate
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField
+{
+    [textField resignFirstResponder];
+    return YES;
+}
+
+
+
+
+
+@end
